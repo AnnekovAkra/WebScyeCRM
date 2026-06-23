@@ -77,6 +77,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    keyboardInterrupt:
+    except KeyboardInterrupt:
       driver.quit()
-        print("\n🤖 Робот остановлен.")
+    print("\n Робот остановлен.")
