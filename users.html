@@ -549,13 +549,11 @@ window.addLeadFromBot = function(name, email, role, price) {
     });
 
     localStorage.setItem('webscye_users', JSON.stringify(users));
-    
-    // Если на странице есть твоя функция перерисовки таблицы — вызываем её
     if (typeof renderTable === 'function') { renderTable(); }
-    
     return "OK";
 };
 </script>
+
 
 
 </body>
