@@ -10,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 # АВТОНОМНЫЙ ИНФОРМАЦИОННЫЙ КОНВЕЙЕР WEBSCYE (ПРОМЫШЛЕННЫЙ СБОР)
 # ============================================================================
 VK_IM_URL = "https://vk.com"
-CRM_URL = "https://github.io"
+CRM_URL = "https://annekovakra.github.io/WebScyeCRM/users.html"
 
 print("🤖 Инициализация интеллектуального робота WebScye CRM...")
 
