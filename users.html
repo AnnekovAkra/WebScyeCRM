@@ -528,14 +528,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <script>
-// ЧИСТЫЙ ИНФОРМАЦИОННЫЙ ШЛЮЗ ДЛЯ РОБОТА WEBSCYE (БЕЗ ДЕНЕГ)
+// ОФИЦИАЛЬНЫЙ ПУЛЕНЕПРОБИВАЕМЫЙ ШЛЮЗ ДЛЯ БОТА WEBSCYE
 window.addLeadFromBot = function(name, email, role) {
     let users = [];
     if (localStorage.getItem('webscye_users')) {
         users = JSON.parse(localStorage.getItem('webscye_users'));
     }
 
-    // Проверка на дубликаты по Email/ссылке
     if (users.some(u => u.email === email)) {
         return "EXISTS";
     }
@@ -543,11 +542,10 @@ window.addLeadFromBot = function(name, email, role) {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const now = new Date();
     
-    // Записываем только чистую информацию о пользователе
     users.push({
         id: Date.now(),
         name: name,
-        email: email, // Сюда встанет почта или прямая ссылка на диалог ВК
+        email: email, // Ссылка на диалог ВК
         role: role,
         status: "Active",
         date: `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`
@@ -558,7 +556,6 @@ window.addLeadFromBot = function(name, email, role) {
     return "OK";
 };
 </script>
-
 
 
 
