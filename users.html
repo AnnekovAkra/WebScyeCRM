@@ -528,9 +528,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <script>
-    // ТЕХНИЧЕСКИЙ ВХОД ДЛЯ АВТОНОМНОГО БОТА WEBSCYE
+// ТОЧНЫЙ ПРИЕМНИК ДЛЯ РОБОТА-БУФЕРА WEBSCYE
 window.addLeadFromBot = function(name, email, role, price) {
-    const users = getDatabase();
+    let users = [];
+    if (localStorage.getItem('webscye_users')) {
+        users = JSON.parse(localStorage.getItem('webscye_users'));
+    }
+
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const now = new Date();
     
@@ -543,11 +547,14 @@ window.addLeadFromBot = function(name, email, role, price) {
         date: `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`,
         price: Number(price)
     });
+
+    localStorage.setItem('webscye_users', JSON.stringify(users));
     
-    saveDatabase(users);
+    // Если на странице есть твоя функция перерисовки таблицы — вызываем её
+    if (typeof renderTable === 'function') { renderTable(); }
+    
     return "OK";
 };
-
 </script>
 
 
