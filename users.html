@@ -528,24 +528,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <script>
-// ТОЧНЫЙ ПРИЕМНИК ДЛЯ РОБОТА-БУФЕРА WEBSCYE
-window.addLeadFromBot = function(name, email, role, price) {
+// ЧИСТЫЙ ИНФОРМАЦИОННЫЙ ШЛЮЗ ДЛЯ РОБОТА WEBSCYE (БЕЗ ДЕНЕГ)
+window.addLeadFromBot = function(name, email, role) {
     let users = [];
     if (localStorage.getItem('webscye_users')) {
         users = JSON.parse(localStorage.getItem('webscye_users'));
     }
 
+    // Проверка на дубликаты по Email/ссылке
+    if (users.some(u => u.email === email)) {
+        return "EXISTS";
+    }
+
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const now = new Date();
     
+    // Записываем только чистую информацию о пользователе
     users.push({
         id: Date.now(),
         name: name,
-        email: email,
+        email: email, // Сюда встанет почта или прямая ссылка на диалог ВК
         role: role,
         status: "Active",
-        date: `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`,
-        price: Number(price)
+        date: `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`
     });
 
     localStorage.setItem('webscye_users', JSON.stringify(users));
@@ -553,6 +558,7 @@ window.addLeadFromBot = function(name, email, role, price) {
     return "OK";
 };
 </script>
+
 
 
 
