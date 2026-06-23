@@ -11,7 +11,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 # ============================================================================
 # Токен группы ВК (берется в настройках группы -> Работа с API -> Создать токен)
 VK_TOKEN = "vk1.a.7AObYEBCRmsjPLc9iFJEIwFuxAwt3-01pSHl4GKwE9eWi_iIJ1-6xmjz-TTGRo43RTjSiPegWk6-z8-phGCqOoSog-8lUk6l55XtOYj3L2yqyFLanRFX06RCdr0_qfq2D7Db7w0KKB3A7WYgIV_9MOW-H_htUooMhgpLZzNhGeuLFxWlU70vFWU4_m-0je2X52tDJCw-kSuNGAFtlpzPew" 
-CRM_URL = "https://github.io"
+CRM_URL = "https://annekovakra.github.io/WebScyeCRM/"
 
 # Настройка скрытого браузера Selenium
 options = webdriver.ChromeOptions()
