@@ -529,9 +529,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script>
 // ============================================================================
-// LIVE-СИНХРОНИЗАТОР БАЗЫ CRM WEBSCYE ДЛЯ АВТОНОМНОГО БОТА
+// БЕССМЕРТНЫЙ ЛОКАЛЬНЫЙ СИНХРОНИЗАТОР CRM WEBSCYE (РАБОТАЕТ БЕЗ ИНТЕРНЕТ СЕРВЕРОВ)
 // ============================================================================
-const SERVER_BRIDGE_URL = "https://keyvalue.xyz";
+
+// Сайт читает базу из файла database.json, который создает твой бот в этой же папке
+const SERVER_BRIDGE_URL = "./database.json";
 
 async function syncCRMWithServer() {
     try {
@@ -544,7 +546,7 @@ async function syncCRMWithServer() {
             }
         }
     } catch (error) {
-        console.log("Ожидание данных от бота...");
+        console.log("Ожидание создания файла database.json ботом...");
     }
 }
 
@@ -559,32 +561,32 @@ function renderTable() {
     
     tbody.innerHTML = ''; 
     users.forEach(user => {
-        const statusClass = user.status.toLowerCase() === 'active' ? 'bg-green-500' : 'bg-amber-500';
+        const statusClass = user.status && user.status.toLowerCase() === 'active' ? 'bg-green-500' : 'bg-amber-500';
         tbody.innerHTML += `
             <tr class="border-b border-white/[0.05] hover:bg-white/[0.02] transition-colors">
                 <td class="p-4 flex items-center gap-3">
                     <div class="w-8 h-8 rounded-lg bg-neutral-800 border border-white/[0.1] flex items-center justify-center font-bold text-xs text-white">
-                        ${user.name.charAt(0)}
+                        ${user.name ? user.name.charAt(0) : 'U'}
                     </div>
                     <div>
-                        <div class="text-white font-medium text-sm">${user.name}</div>
-                        <div class="text-neutral-500 text-xs">${user.email}</div>
+                        <div class="text-white font-medium text-sm">${user.name || 'Без имени'}</div>
+                        <div class="text-neutral-500 text-xs">${user.email || 'Нет контактов'}</div>
                     </div>
                 </td>
-                <td class="p-4 text-neutral-400 text-sm">${user.role}</td>
+                <td class="p-4 text-neutral-400 text-sm">${user.role || 'User'}</td>
                 <td class="p-4">
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-900 border border-white/[0.05] text-white">
                         <span class="w-1.5 h-1.5 rounded-full ${statusClass}"></span>
-                        ${user.status}
+                        ${user.status || 'Active'}
                     </span>
                 </td>
-                <td class="p-4 text-neutral-500 text-xs">${user.date}</td>
+                <td class="p-4 text-neutral-500 text-xs">${user.date || ''}</td>
             </tr>
         `;
     });
 }
 
-// Авто-обновление таблицы каждые 3 секунды без перезагрузки вкладки браузера
+// Каждые 3 секунды сайт проверяет, не обновил ли бот файл на диске
 setInterval(syncCRMWithServer, 3000);
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -592,6 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTable();
 });
 </script>
+
 
 
 
