@@ -8,16 +8,23 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 
 # ============================================================================
-# КОМБАЙН ЛИДОГЕНЕРАЦИИ WEBSCYE: TARGETHUNTER ПАРСЕР + ВК РАССЫЛЬЩИК
+# МЕЖДУНАРОДНЫЙ КОМБАЙН WEBSCYE: АВТО-ПЕРЕВОД + РАССЫЛКА ПО ВСЕМУ МИРУ
 # ============================================================================
 
-# Твой продающий оффер студии WebScye
-OFFER_TEXT = "Здравствуйте! Я ведущий разработчик холдинга WebScye. Мы подготовили готовое ИТ-решение для автоматизации и привлечения клиентов конкретно под ваше направление. Если вам актуально масштабирование бизнеса, напишите нам."
+# Шаблоны офферов на разных языках мира холдинга WebScye
+OFFERS = {
+    "ru": "Здравствуйте! Я ведущий разработчик холдинга WebScye. Мы подготовили готовое ИТ-решение для автоматизации и привлечения клиентов конкретно под ваше направление. Если вам актуально масштабирование бизнеса, напишите нам.",
+    "en": "Hello! I am a lead developer at WebScye. We have prepared a turnkey IT solution to automate operations and attract more clients specifically for your photography business. If you are looking to scale, let us know.",
+    "es": "¡Hola! Soy desarrollador principal en WebScye. Hemos preparado una solución tecnológica a medida para automatizar operaciones y captar más clientes específicamente para su negocio de fotografía. Si busca escalar, escríbanos.",
+    "fr": "Bonjour! Je suis développeur principal chez WebScye. Nous avons préparé une solution informatique clé en main для автоматизации и привлечения клиентов для вашего фотобизнеса. Si vous souhaitez vous développer, contactez-nous.",
+    "de": "Hallo! Ich bin Chefentwickler bei WebScye. Wir haben eine maßgeschneiderte IT-Lösung entwickelt, um Abläufe zu automatisieren und mehr Kunden speziell für Ihr Fotografie-Unternehmen zu gewinnen. Wenn Sie expandieren möchten, schreiben Sie uns.",
+    "it": "Ciao! Sono uno sviluppatore principale di WebScye. Abbiamo preparato una soluzione IT su misura per automatizzare le operazioni e trovare più clienti specificamente per la tua attività di fotografia. Se vuoi scalare, scrivici."
+}
 
 TARGETS_FILE = "targets.txt"
 HISTORY_FILE = "sent_history.txt"
 
-print("🤖 Инициализация промышленного комбайна WebScye...")
+print("🤖 Инициализация международного робота WebScye Global...")
 
 options = webdriver.ChromeOptions()
 options.add_argument("--start-maximized")
@@ -35,105 +42,120 @@ def save_to_history(group_id):
     with open(HISTORY_FILE, "a", encoding="utf-8") as f:
         f.write(f"{group_id}\n")
 
+def detect_language(text):
+    """Умный лингвистический анализатор: определяет язык по названию группы"""
+    text_low = text.lower()
+    if any(w in text_low for w in ["photographe", "séance", "mariage"]): return "fr"
+    if any(w in text_low for w in ["fotógrafo", "sesión", "bodas"]): return "es"
+    if any(w in text_low for w in ["hochzeitsfotograf", "fotoshooting", "fotostudio"]): return "de"
+    if any(w in text_low for w in ["servizio", "matrimoni", "fotografico"]): return "it"
+    if any(w in text_low for w in ["photographer", "wedding", "photoshoot", "studio", "videographer", "portfolio"]): return "en"
+    return "ru" # Если иностранных слов нет, шлем на русском
+
 def harvest_target_hunter_ids():
-    """Бот автоматически выкачивает все ID групп прямо из открытого окна TargetHunter"""
+    """Сбор ID групп и названий прямо из открытого окна TargetHunter"""
     print("\n🕵️ Шаг 1. Сбор базы в TargetHunter.")
-    print("💡 ИНСТРУКЦИЯ: Откройте вкладку TargetHunter, выполните нужный поиск фотографов.")
-    print("💡 Когда на экране появится список найденных групп, вернитесь в терминал и нажмите ENTER...")
-    input("⌨️ Нажмите [ENTER] для перехвата ID с экрана...")
+    print("💡 ИНСТРУКЦИЯ: Выполните мировой поиск по нашему мультиязычному списку слов.")
+    print("💡 Когда увидите таблицу результатов, вернитесь сюда...")
+    input("⌨️ Нажмите [ENTER] в терминале для перехвата ID с экрана...")
     
-    print("🤖 Сканирую страницу TargetHunter на наличие системных ID сообществий...")
-    
-    # Робот вытаскивает весь HTML-код страницы, чтобы найти ID групп
+    print("🤖 Сканирую HTML-код TargetHunter...")
     page_source = driver.page_source
     
-    # Ищем любые упоминания ссылок на группы ://vk.com или ://vk.com, либо чистые ID
-    # Регулярное выражение нацелено на поиск ID сообществ в интерфейсе TargetHunter
-    found_ids = re.findall(r'(?:club|public|group|id|vk\.com\/|-)(\d{5,15})', page_source)
+    # Регулярка для сбора пар [ID группы, Название группы] из верстки TargetHunter
+    # (Она аккуратно вытаскивает метаданные, чтобы мы знали, как называется группа)
+    raw_pairs = re.findall(r'(?:club|public|group|id|vk\.com\/|-)(\d{5,15}).*?>(.*?)<\/a>', page_source)
     
-    # Убираем дубликаты и пустые значения
-    unique_ids = sorted(list(set(found_ids)))
-    
-    if len(unique_ids) == 0:
-        print("⚠️ Робот не смог найти ID на этой странице. Попробуем собрать по ссылкам...")
-        # Альтернативный поиск по тегам ссылок <a> в интерфейсе TH
+    if len(raw_pairs) == 0:
+        # ЕслиTH обновил верстку таблиц, собираем по общему списку элементов ссылок
         links = driver.find_elements(By.XPATH, "//a[contains(@href, 'vk.com')]")
+        unique_data = {}
         for link in links:
-            href = link.get_attribute("href")
-            match = re.search(r'(?:club|public|-\s*)(\d+)', href)
-            if match:
-                unique_ids.append(match.group(1))
-        unique_ids = sorted(list(set(unique_ids)))
+            try:
+                href = link.get_attribute("href")
+                name = link.text.strip()
+                match = re.search(r'(?:club|public|sel=-\s*)(\d+)', href)
+                if match and name:
+                    unique_data[match.group(1)] = name
+            except:
+                continue
+    else:
+        unique_data = {pid: name.strip() for pid, name in raw_pairs if name.strip()}
 
-    if len(unique_ids) == 0:
+    if len(unique_data) == 0:
         print("❌ База пуста! Убедитесь, что на экране в TargetHunter открыт результат поиска.")
         return False
         
-    print(f"🔥 УСПЕХ! Робот WebScye автоматически перехватил {len(unique_ids)} ID фотографов!")
+    print(f"🔥 УСПЕХ! Робот WebScye перехватил {len(unique_data)} мировых фотографов!")
     
-    # Записываем свежие ID в файл мимо ручной работы
+    # Сохраняем базу в формате: ID ||| Название группы
     with open(TARGETS_FILE, "w", encoding="utf-8") as f:
-        for gid in unique_ids:
-            f.write(f"{gid}\n")
+        for gid, gname in unique_data.items():
+            f.write(f"{gid}|||{gname}\n")
     return True
 
 def run_vk_delivery():
-    """Запуск веерной рассылки по собранным ID"""
-    print("\n🚀 Шаг 2. Запуск веерной рассылки офферов по собранной базе...")
+    """Запуск веерной рассылки с автоматическим определением языка"""
+    print("\n🚀 Шаг 2. Запуск международной рассылки офферов...")
     
     if not os.path.exists(TARGETS_FILE):
         print("❌ Ошибка: Файл базы не найден.")
         return
 
     with open(TARGETS_FILE, "r", encoding="utf-8") as f:
-        group_ids = [line.strip() for line in f if line.strip()]
+        lines = [line.strip() for line in f if "|||" in line]
 
     history = load_history()
-    print(f"🤖 В очереди на отправку: {len(group_ids)} сообществ. Исключено старых: {len(history)}.")
+    successful_sends = 0
 
-    for group_id in group_ids:
+    for line in lines:
+        group_id, group_name = line.split("|||", 1)
+        
         if group_id in history:
             continue
 
+        # Автоматически определяем язык группы по её названию
+        lang = detect_language(group_name)
+        chosen_offer = OFFERS[lang]
+
         direct_chat_url = f"https://vk.com{group_id}"
-        print(f"👉 Открываю диалог с сообществом ID: {group_id}")
+        print(f"\n👉 Открываю чат с ID: {group_id} | Группа: '{group_name}' | Язык оффера: [{lang.upper()}]")
         
         try:
             driver.get(direct_chat_url)
-            time.sleep(3.5) # Даем чату прогрузиться, чтобы фокус встал в поле ввода
+            time.sleep(3.5) # Ждем фокуса в окне диалога
             
-            # Пишем оффер напрямую в активный элемент (в поле ввода диалога)
+            # Пишем переведенный текст оффера напрямую в поле ввода
             active_element = driver.switch_to.active_element
-            active_element.send_keys(OFFER_TEXT)
+            active_element.send_keys(chosen_offer)
             time.sleep(0.5)
             
-            # Физически нажимаем Enter для отправки
+            # Отправка по Enter
             active_element.send_keys(Keys.ENTER)
-            print(f"✅ Оффер успешно доставлен в сообщество ID: {group_id}")
+            print(f"✅ Оффер на языке [{lang.upper()}] успешно доставлен!")
+            successful_sends += 1
             
             save_to_history(group_id)
         except Exception as e:
-            print(f"❌ Ошибка отправки в ID {group_id}: {e}")
+            print(f"❌ Ошибка отправки: {e}")
             
-        # БИЗНЕС-ПАУЗА: случайный интервал, имитирующий человека
+        # БИЗНЕС-ПАУЗА ИМИТАЦИИ ЧЕЛОВЕКА
         sleep_time = random.randint(15, 25)
         print(f"⏳ Безопасная пауза: {sleep_time} секунд...")
         time.sleep(sleep_time)
 
+    print(f"\n🏁 Глобальная мировая экспансия завершена! Оцифровано лидов: {successful_sends}")
+
 if __name__ == "__main__":
     try:
-        # Сначала открываем TargetHunter, чтобы ты залогинился и вывел результат поиска фотографов
-        print("🤖 Открываю TargetHunter. Авторизуйтесь и откройте таблицу результатов поиска...")
-        driver.get("https://targethunter.ru") # Или используй точный URL панели, если сидишь на старой версии
+        print("🤖 Открываю TargetHunter. Авторизуйтесь и запустите мировой поиск...")
+        driver.get("https://targethunter.ru")
         
-        # Запускаем автоматический сбор ID с экрана
         if harvest_target_hunter_ids():
-            # Переходим на ВК для выполнения рассылки в этой же сессии браузера
             print("\n🤖 Теперь переходим в ВК. Авторизуйтесь в своем аккаунте...")
             driver.get("https://vk.com")
             WebDriverWait(driver, 300).until(lambda d: "vk.com" in d.current_url)
             
-            # Погнали рассылать
             run_vk_delivery()
             
     except KeyboardInterrupt:
