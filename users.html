@@ -357,25 +357,8 @@ https://templatemo.com/tm-607-glass-admin
 
 
 
+
  <script>
-// База данных WebScye с интеграцией Суммы прямо в таблицу
-const defaultUsers = [
-    { id: 1, name: "Школа English Advance", email: "director@eng-advance.ru", role: "Professional", status: "Active", date: "Jun 15, 2026", price: 15000 },
-    { id: 2, name: "Детский Центр Умники", email: "info@umniki-club.ru", role: "Starter", status: "Active", date: "Jun 22, 2026", price: 7999 },
-    { id: 3, name: "Фотограф Влад Свадьбы", email: "vladphoto@mail.ru", role: "Starter", status: "Away", date: "Jun 23, 2026", price: 4990 }
-];
-
-function getDatabase() {
-    if (!localStorage.getItem('webscye_users')) {
-        localStorage.setItem('webscye_users', JSON.stringify(defaultUsers));
-    }
-    return JSON.parse(localStorage.getItem('webscye_users'));
-}
-
-function saveDatabase(data) {
-    localStorage.setItem('webscye_users', JSON.stringify(data));
-    renderTable();
-}
 
 // РЕНДЕРИНГ: СУММА ВЫВЕДЕНА В ПОСЛЕДНЮЮ КОЛОНКУ ТАБЛИЦЫ
 function renderTable() {
@@ -395,7 +378,7 @@ function renderTable() {
             <tr class="border-b border-white/[0.05] hover:bg-white/[0.02] transition-colors">
                 <td class="p-4 flex items-center gap-3">
                     <div class="w-8 h-8 rounded-lg bg-neutral-800 border border-white/[0.1] flex items-center justify-center font-bold text-xs text-white">
-                        ${user.name.charAt(0)}
+                        ${user.name ? user.name.charAt(0).toUpperCase() : 'W'}
                     </div>
                     <div>
                         <div class="text-white font-medium text-sm">${user.name}</div>
@@ -410,7 +393,6 @@ function renderTable() {
                     </span>
                 </td>
                 <td class="p-4 text-neutral-500 text-xs">${user.date}</td>
-                <!-- Сумма заняла место последнего действия в таблице -->
                 <td class="p-4 text-emerald-400 font-semibold text-sm">${formattedPrice}</td>
             </tr>
         `;
@@ -441,17 +423,18 @@ function triggerAddUser(event) {
     if (!email) return;
     const role = prompt("Тариф решения (Starter / Professional / Enterprise):", "Professional");
     const status = prompt("Статус сделки (Active / Away):", "Active");
-    const priceInput = prompt("Введите сумму контракта в рублях (только цифры):", "15000");
+    const priceInput = prompt("Введите сумму контракта в рублей (только цифры):", "15000");
     const price = isNaN(parseInt(priceInput)) ? 0 : parseInt(priceInput);
 
     const users = getDatabase();
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const now = new Date();
     
-    users.push({
+    // ИСПРАВЛЕНИЕ 1: Используем unshift вместо push, чтобы новые юзеры падали НАВЕРХ и не срезались шаблоном
+    users.unshift({
         id: Date.now(),
         name: name,
-        email: email.trim().toLowerCase(), // чистим пробелы для точности удаления
+        email: email.trim().toLowerCase(),
         role: role,
         status: status,
         date: `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`,
@@ -459,6 +442,9 @@ function triggerAddUser(event) {
     });
 
     saveDatabase(users);
+    
+    // ИСПРАВЛЕНИЕ 2: Принудительно перерисовываем таблицу сразу после добавления
+    renderTable();
 }
 
 // УЛЬТИМАТИВНОЕ УДАЛЕНИЕ ПО EMAIL
@@ -477,21 +463,23 @@ function triggerDeleteMode(event) {
     const cleanEmail = targetEmail.trim().toLowerCase();
     const originalLength = users.length;
     
-    // Фильтруем базу, оставляя только тех, чей email НЕ совпадает с введенным
     users = users.filter(user => user.email !== cleanEmail);
 
     if (users.length < originalLength) {
         alert(`Клиент с Email "${cleanEmail}" успешно удален из CRM.`);
         saveDatabase(users);
+        
+        // ИСПРАВЛЕНИЕ 3: Принудительно перерисовываем таблицу сразу после удаления
+        renderTable();
     } else {
         alert(`Клиент с Email "${cleanEmail}" не найден в системе.`);
     }
 }
+
 // Старт системы
 document.addEventListener('DOMContentLoaded', renderTable);
+
 </script>
-
-
 
 
 
