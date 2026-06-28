@@ -356,7 +356,6 @@ https://templatemo.com/tm-607-glass-admin
     <!-- TemplateMo 607 Glass Admin -->
 
 
-
 <script>
     // ==========================================
 // 1. РАБОТА С БАЗОЙ ДАННЫХ (LOCALSTORAGE)
@@ -476,9 +475,7 @@ function triggerAddUser(event) {
     renderTable();
 }
 
-// ==========================================
-// 4. ФУНКЦИЯ: ИЗМЕНЕНИЕ КЛИЕНТА (EDIT)
-// ==========================================
+
 function triggerEditUser(id) {
     let users = getDatabase();
     const userIndex = users.findIndex(u => u.id === id);
@@ -488,7 +485,7 @@ function triggerEditUser(id) {
 
     const newName = prompt("Изменить имя / компанию:", current.name) || current.name;
     const newRole = prompt("Изменить тариф / роль:", current.role) || current.role;
-    const newStatus = prompt("Изменить статус (Active / Away / Offline):", current.status) || current.status;
+    const newStatus = prompt("Изменить статус (Active / Ожидание / Offline):", current.status) || current.status;
     const newPrice = prompt("Изменить сумму (руб):", current.price) || current.price;
 
     users[userIndex].name = newName;
@@ -499,6 +496,58 @@ function triggerEditUser(id) {
     saveDatabase(users);
     renderTable();
 }
+
+// ==========================================
+// 2. ОТРИСОВКА (РЕНДЕРИНГ) ТАБЛИЦЫ И СЧЕТЧИКОВ
+// ==========================================
+function renderTable() {
+    const users = getDatabase();
+    const tbody = document.getElementById('users-table-body');
+    
+    if (!tbody) return;
+    tbody.innerHTML = ''; 
+
+    users.forEach(user => {
+        const statusClass = user.status.toLowerCase() === 'active' ? 'bg-green-500' : 'bg-amber-500';
+        const formattedPrice = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(user.price || 0);
+
+        tbody.innerHTML += `
+            <tr class="border-b border-white/[0.05] hover:bg-white/[0.02] transition-colors">
+                <td class="p-4 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-neutral-800 border border-white/[0.1] flex items-center justify-center font-bold text-xs text-white">
+                        ${user.name.charAt(0)}
+                    </div>
+                    <div>
+                        <div class="text-white font-medium text-sm">${user.name}</div>
+                        <div class="text-neutral-500 text-xs">${user.email}</div>
+                    </div>
+                </td>
+                <td class="p-4 text-neutral-400 text-sm">${user.role}</td>
+                <td class="p-4">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-900 border border-white/[0.05] text-white">
+                        <span class="w-1.5 h-1.5 rounded-full ${statusClass}"></span>
+                        ${user.status}
+                    </span>
+                </td>
+                <td class="p-4 text-neutral-500 text-xs">${user.date}</td>
+                <td class="p-4 text-emerald-400 font-semibold text-sm">${formattedPrice}</td>
+                <td class="p-4 text-right">
+                    <!-- ТОТ САМЫЙ РАБОЧИЙ КОД С ДОБАВЛЕННЫМ СТИЛЕМ КНОПКИ УДАЛИТЬ -->
+                    <button onclick="triggerEditUser(${user.id})" 
+                            style="background: transparent; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 8px; color: #ffffff; padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.2s;"
+                            onmouseover="this.style.background='rgba(255, 255, 255, 0.05)'"
+                            onmouseout="this.style.background='transparent'">
+                        Edit
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    updateGlobalCounters(users);
+}
+
+
 
 // ==========================================
 // 5. ФУНКЦИЯ: УДАЛЕНИЕ КЛИЕНТА ПО ПОЧТЕ (EMAIL)
@@ -535,6 +584,7 @@ document.addEventListener('DOMContentLoaded', renderTable);
 
 
 </script>
+  
 
 
 
