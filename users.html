@@ -357,7 +357,184 @@ https://templatemo.com/tm-607-glass-admin
 
 
 
+<script>
+    // ==========================================
+// 1. РАБОТА С БАЗОЙ ДАННЫХ (LOCALSTORAGE)
+// ==========================================
+function getDatabase() {
+    const db = localStorage.getItem('webscye_shared_db');
+    if (!db) {
+        // Стартовый массив (заглушки со скриншота, теперь они полностью живые)
+        const defaultUsers = [
+            { id: 1001, name: "John Doe", email: "john@example.com", role: "Administrator", status: "Active", date: "Jan 15, 2024", price: 15000 },
+            { id: 1002, name: "Anna Smith", email: "anna@example.com", role: "Editor", status: "Active", date: "Feb 22, 2024", price: 8000 },
+            { id: 1003, name: "Mike Johnson", email: "mike@example.com", role: "User", status: "Away", date: "Mar 10, 2024", price: 0 },
+            { id: 1004, name: "Emily White", email: "emily@example.com", role: "Moderator", status: "Active", date: "Apr 5, 2024", price: 12000 }
+        ];
+        localStorage.setItem('webscye_shared_db', JSON.stringify(defaultUsers));
+        return defaultUsers;
+    }
+    return JSON.parse(db);
+}
 
+function saveDatabase(data) {
+    localStorage.setItem('webscye_shared_db', JSON.stringify(data));
+}
+
+// ==========================================
+// 2. ОТРИСОВКА (РЕНДЕРИНГ) ТАБЛИЦЫ И СЧЕТЧИКОВ
+// ==========================================
+function renderTable() {
+    const users = getDatabase();
+    const tbody = document.getElementById('users-table-body');
+    
+    if (!tbody) return;
+    tbody.innerHTML = ''; // Очистка старой верстки
+
+    users.forEach(user => {
+        // Подсветка индикатора статуса
+        let statusColor = 'bg-amber-500';
+        if (user.status.toLowerCase() === 'active') statusColor = 'bg-green-500';
+        if (user.status.toLowerCase() === 'offline') statusColor = 'bg-neutral-600';
+
+        // Форматирование суммы в рубли
+        const formattedPrice = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(user.price || 0);
+        const initials = user.name ? user.name.substring(0, 2).toUpperCase() : 'WS';
+
+        tbody.innerHTML += `
+            <tr class="border-b border-white/[0.05] hover:bg-white/[0.02] transition-colors">
+                <td class="p-4 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-neutral-800 border border-white/[0.1] flex items-center justify-center font-bold text-xs text-white">
+                        ${initials}
+                    </div>
+                    <div>
+                        <div class="text-white font-medium text-sm">${user.name}</div>
+                        <div class="text-neutral-500 text-xs">${user.email}</div>
+                    </div>
+                </td>
+                <td class="p-4 text-neutral-400 text-sm">${user.role}</td>
+                <td class="p-4">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-900 border border-white/[0.05] text-white">
+                        <span class="w-1.5 h-1.5 rounded-full ${statusColor}"></span>
+                        ${user.status}
+                    </span>
+                </td>
+                <td class="p-4 text-neutral-500 text-xs">${user.date}</td>
+                <td class="p-4 text-emerald-400 font-semibold text-sm">${formattedPrice}</td>
+                <td class="p-4">
+                    <button onclick="triggerEditUser(${user.id})" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);" class="px-3 py-1 rounded text-xs text-neutral-300 hover:text-white hover:bg-white/[0.1] transition-all">Edit</button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    updateGlobalCounters(users);
+}
+
+function updateGlobalCounters(users) {
+    const totalRevenue = users.reduce((sum, user) => sum + Number(user.price || 0), 0);
+    const formattedRevenue = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(totalRevenue);
+    
+    // Поиск карточки дохода/выручки
+    const revenueCounter = document.getElementById('total-revenue') || document.querySelector('.metric-card .metric-value');
+    if (revenueCounter) {
+        revenueCounter.innerText = formattedRevenue;
+    }
+}
+
+// ==========================================
+// 3. ФУНКЦИЯ: ДОБАВЛЕНИЕ КЛИЕНТА
+// ==========================================
+function triggerAddUser(event) {
+    if(event) event.preventDefault();
+    
+    const name = prompt("Введите имя клиента / компании:");
+    if (!name) return;
+    const email = prompt("Введите Email клиента:");
+    if (!email) return;
+    const role = prompt("Тариф / Роль (Starter / Professional / Enterprise):", "Professional");
+    const status = prompt("Статус (Active / Away / Offline):", "Active");
+    const priceInput = prompt("Введите сумму контракта в рублях (только цифры):", "15000");
+    const price = isNaN(parseInt(priceInput)) ? 0 : parseInt(priceInput);
+
+    const users = getDatabase();
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const now = new Date();
+    
+    // Падает на самый верх таблицы
+    users.unshift({
+        id: Date.now(),
+        name: name,
+        email: email.trim().toLowerCase(),
+        role: role,
+        status: status,
+        date: `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`,
+        price: price
+    });
+
+    saveDatabase(users);
+    renderTable();
+}
+
+// ==========================================
+// 4. ФУНКЦИЯ: ИЗМЕНЕНИЕ КЛИЕНТА (EDIT)
+// ==========================================
+function triggerEditUser(id) {
+    let users = getDatabase();
+    const userIndex = users.findIndex(u => u.id === id);
+    if (userIndex === -1) return;
+
+    const current = users[userIndex];
+
+    const newName = prompt("Изменить имя / компанию:", current.name) || current.name;
+    const newRole = prompt("Изменить тариф / роль:", current.role) || current.role;
+    const newStatus = prompt("Изменить статус (Active / Away / Offline):", current.status) || current.status;
+    const newPrice = prompt("Изменить сумму (руб):", current.price) || current.price;
+
+    users[userIndex].name = newName;
+    users[userIndex].role = newRole;
+    users[userIndex].status = newStatus;
+    users[userIndex].price = isNaN(parseInt(newPrice)) ? current.price : parseInt(newPrice);
+
+    saveDatabase(users);
+    renderTable();
+}
+
+// ==========================================
+// 5. ФУНКЦИЯ: УДАЛЕНИЕ КЛИЕНТА ПО ПОЧТЕ (EMAIL)
+// ==========================================
+function triggerDeleteMode(event) {
+    if(event) event.preventDefault();
+    
+    let users = getDatabase();
+    if (users.length === 0) {
+        alert("База CRM пуста!");
+        return;
+    }
+
+    const targetEmail = prompt("Введите точный Email клиента для его удаления из CRM:");
+    if (!targetEmail) return;
+
+    const cleanEmail = targetEmail.trim().toLowerCase();
+    const originalLength = users.length;
+    
+    // Фильтрация: удаляем совпавший email
+    users = users.filter(user => user.email !== cleanEmail);
+
+    if (users.length < originalLength) {
+        alert(`Клиент с Email "${cleanEmail}" успешно удален.`);
+        saveDatabase(users);
+        renderTable();
+    } else {
+        alert(`Клиент с Email "${cleanEmail}" не найден.`);
+    }
+}
+
+// Запуск системы при загрузке DOM дерева
+document.addEventListener('DOMContentLoaded', renderTable);
+
+
+</script>
 
 
 
