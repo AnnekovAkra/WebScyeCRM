@@ -360,18 +360,37 @@ https://templatemo.com/tm-607-glass-admin
 
  <script>
 
-// РЕНДЕРИНГ: СУММА ВЫВЕДЕНА В ПОСЛЕДНЮЮ КОЛОНКУ ТАБЛИЦЫ
+// НАДЕЖНЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С LOCALSTORAGE
+function getDatabase() {
+    const db = localStorage.getItem('webscye_shared_db');
+    if (!db) {
+        // Дефолтная база, если в памяти еще ничего нет
+        const defaultUsers = [
+            { id: 1, name: "John Doe", email: "john@example.com", role: "Administrator", status: "Active", date: "Jan 15, 2026", price: 15000 },
+            { id: 2, name: "Anna Smith", email: "anna@example.com", role: "Editor", status: "Active", date: "Feb 22, 2026", price: 8000 }
+        ];
+        localStorage.setItem('webscye_shared_db', JSON.stringify(defaultUsers));
+        return defaultUsers;
+    }
+    return JSON.parse(db);
+}
+
+function saveDatabase(data) {
+    localStorage.setItem('webscye_shared_db', JSON.stringify(data));
+}
+
+// РЕНДЕРИНГ: ОТРИСОВКА ТАБЛИЦЫ НА ЭКРАНЕ
 function renderTable() {
     const users = getDatabase();
     const tbody = document.getElementById('users-table-body');
     
     if (!tbody) return;
-    tbody.innerHTML = ''; 
+    tbody.innerHTML = ''; // Полностью чистим контейнер перед выводом
 
     users.forEach(user => {
         const statusClass = user.status.toLowerCase() === 'active' ? 'bg-green-500' : 'bg-amber-500';
         
-        // Форматируем сумму для вывода в таблицу (например: 15 000 ₽)
+        // Форматируем сумму в рубли
         const formattedPrice = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(user.price || 0);
 
         tbody.innerHTML += `
@@ -394,6 +413,9 @@ function renderTable() {
                 </td>
                 <td class="p-4 text-neutral-500 text-xs">${user.date}</td>
                 <td class="p-4 text-emerald-400 font-semibold text-sm">${formattedPrice}</td>
+                <td class="p-4">
+                    <button onclick="triggerEditUser(${user.id})" class="px-3 py-1 rounded bg-neutral-800 border border-white/[0.1] text-xs text-neutral-400 hover:text-white transition-colors">Edit</button>
+                </td>
             </tr>
         `;
     });
@@ -406,14 +428,13 @@ function updateGlobalCounters(users) {
     const totalRevenue = users.reduce((sum, user) => sum + Number(user.price || 0), 0);
     const formattedRevenue = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(totalRevenue);
     
-    // Ищет карточку Общего дохода или Потенциальной выручки вверху панели
-    const revenueCounter = document.querySelector('.card:nth-child(1) h3, div:contains("ОБЩИЙ ДОХОД") + div, div:contains("ПОТЕНЦИАЛЬНАЯ ВЫРУЧКА") + div');
+    const revenueCounter = document.getElementById('total-revenue') || document.querySelector('.metric-card .metric-value');
     if (revenueCounter) {
         revenueCounter.innerText = formattedRevenue;
     }
 }
 
-// ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ С ДАННЫМИ О СУММЕ
+// ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ НАВЕРХ СПИСКА
 function triggerAddUser(event) {
     if(event) event.preventDefault();
     
@@ -423,16 +444,16 @@ function triggerAddUser(event) {
     if (!email) return;
     const role = prompt("Тариф решения (Starter / Professional / Enterprise):", "Professional");
     const status = prompt("Статус сделки (Active / Away):", "Active");
-    const priceInput = prompt("Введите сумму контракта в рублей (только цифры):", "15000");
+    const priceInput = prompt("Введите сумму контракта в рублях (только цифры):", "15000");
     const price = isNaN(parseInt(priceInput)) ? 0 : parseInt(priceInput);
 
     const users = getDatabase();
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const now = new Date();
     
-    // ИСПРАВЛЕНИЕ 1: Используем unshift вместо push, чтобы новые юзеры падали НАВЕРХ и не срезались шаблоном
+    // Вставляем строго в начало массива (наверх)
     users.unshift({
-        id: Date.now(),
+        id: Date.now(), // Уникальный ID для удаления и редактирования
         name: name,
         email: email.trim().toLowerCase(),
         role: role,
@@ -442,12 +463,30 @@ function triggerAddUser(event) {
     });
 
     saveDatabase(users);
-    
-    // ИСПРАВЛЕНИЕ 2: Принудительно перерисовываем таблицу сразу после добавления
+    renderTable(); // Обновляем экран
+}
+
+// РЕДАКТИРОВАНИЕ ПОЛЬЗОВАТЕЛЯ (EDIT С КОТОРОЙ ВСЁ СТАНОВИТСЯ СУПЕР)
+function triggerEditUser(id) {
+    let users = getDatabase();
+    const userIndex = users.findIndex(u => u.id === id);
+    if (userIndex === -1) return;
+
+    const current = users[userIndex];
+
+    const newName = prompt("Изменить имя клиента:", current.name) || current.name;
+    const newRole = prompt("Изменить тариф:", current.role) || current.role;
+    const newPrice = prompt("Изменить сумму контракта (руб):", current.price) || current.price;
+
+    users[userIndex].name = newName;
+    users[userIndex].role = newRole;
+    users[userIndex].price = isNaN(parseInt(newPrice)) ? current.price : parseInt(newPrice);
+
+    saveDatabase(users);
     renderTable();
 }
 
-// УЛЬТИМАТИВНОЕ УДАЛЕНИЕ ПО EMAIL
+// УЛЬТИМАТИВНОЕ УДАЛЕНИЕ ПО EMAIL (БЕЗ БАГОВ)
 function triggerDeleteMode(event) {
     if(event) event.preventDefault();
     
@@ -463,21 +502,21 @@ function triggerDeleteMode(event) {
     const cleanEmail = targetEmail.trim().toLowerCase();
     const originalLength = users.length;
     
+    // Оставляем только тех, чьи мейлы не совпадают
     users = users.filter(user => user.email !== cleanEmail);
 
     if (users.length < originalLength) {
-        alert(`Клиент с Email "${cleanEmail}" успешно удален из CRM.`);
+        alert(`Клиент с Email "${cleanEmail}" успешно удален.`);
         saveDatabase(users);
-        
-        // ИСПРАВЛЕНИЕ 3: Принудительно перерисовываем таблицу сразу после удаления
-        renderTable();
+        renderTable(); // Обновляем экран
     } else {
         alert(`Клиент с Email "${cleanEmail}" не найден в системе.`);
     }
 }
 
-// Старт системы
+// Автозапуск системы
 document.addEventListener('DOMContentLoaded', renderTable);
+
 
 </script>
 
